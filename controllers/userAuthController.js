@@ -4,16 +4,16 @@ import jwt from "jsonwebtoken";
 import SendVerifyMail from "../utils/nodemailer.js";
 
 const Authentication = {
-  register: async (req, res) => {
-    try {
-      let user = await db.query("Select * from user_Table");
-      console.log(user[0], "user");
-      res.send(user[0]);
-    } catch (error) {
-      console.log(error);
-      res.status(500).json(error);
-    }
-  },
+  // register: async (req, res) => {
+  //   try {
+  //     let user = await db.query("Select * from user_Table");
+  //     console.log(user[0], "user");
+  //     res.send(user[0]);
+  //   } catch (error) {
+  //     console.log(error);
+  //     res.status(500).json(error);
+  //   }
+  // },
   login: async (req, res) => {
     try {
       console.log(req.body, "body");
@@ -46,7 +46,7 @@ const Authentication = {
       let userExists = await db.query(
         `SELECT * FROM user_Table WHERE email='${email}'`
       );
-      if (userExists[0].length >0) {
+      if (userExists[0].length > 0) {
         res.status(401).json({ error: "User already exists" });
       } else {
         await db.query(
@@ -61,57 +61,62 @@ const Authentication = {
         .json({ message: "Registration failed", error: error.message });
     }
   },
-  //   googleLogin: async (req, res) => {
-  //     try {
-  //       const token = req.body.credentialResponse.credential;
-  //       const decode = jwt.decode(token);
-  //       const { email } = decode;
-  //       const user = await usermodel.findOne({ email });
-  //       if (user) {
-  //         const token = generateToken(res, user._id);
-  //         res.status(200).json({
-  //           id: user._id,
-  //           email: user.email,
-  //           token,
-  //         });
-  //       } else {
-  //         res.status(400).json("Invalid User");
-  //       }
-  //     } catch (error) {
-  //       res.status(400).json(error);
+    googleLogin: async (req, res) => {
+      try {
+        const token = req.body.credentialResponse.credential;
+        const decode = jwt.decode(token);
+        const { email,sub } = decode;
+        let user=await db.query(`SELECT * FROM user_Table WHERE email='${email}' AND sub='${sub}'` )
+        if (user[0].length>0) {
+          const token = generateToken(res, user[0][0].id);
+          res.status(200).json({
+            id: user[0][0].id,
+            email: user[0][0].email,
+            token,
+          });
+        } else {
+          res.status(400).json({error:"Invalid User , Please Sign up with google to use this Sign in"});
+        }
+      } catch (error) {
+        res.status(400).json(error);
 
-  //     }
-  //   },
-  //   googleAuth: async (req, res) => {
-  //     try {
-  //       console.log("hiiiiiii i m hrere");
-  //       const token = req.body.credentialResponse.credential;
-  //       const decode = jwt.decode(token);
-  //       const { email, sub } = decode;
-  //       const userExists = await usermodel.findOne({ email });
-  //       if (userExists) {
-  //         res.status(400).json({ error: "User already exists" });
-  //       }
-  //       const user = await usermodel.create({
-  //         email,
-  //         sub,
-  //       });
-  //       if (user) {
-  //         const token = generateToken(res, user._id);
-  //         res.status(200).json({
-  //           id: user._id,
-  //           email: user.email,
-  //           token,
-  //         });
-  //       } else {
-  //         console.log("user is not created");
-  //         res.status(400).json("Couldnt find the user");
-  //       }
-  //     } catch (error) {
-  //       console.log(error);
-  //       res.status(400).json({ error });
-  //     }
-  //   },
+      }
+    },
+  googleAuth: async (req, res) => {
+    try {
+      const body_Token = req.body.credentialResponse.credential;
+      const decode = jwt.decode(body_Token);
+      console.log(decode, "decodeddddddddddddddddddddddd");
+      const { name, email, sub } = decode;
+      const userExists = await db.query(
+        `SELECT * FROM user_Table WHERE email='${email}'`
+      );
+      if (userExists[0].length > 0) {
+        res.status(400).json({ error: "User already exists" });
+      }
+      else{
+        await db.query(
+          `INSERT INTO user_Table(id,fullName,email,password,verified,sub)VALUES(null,'${name}','${email}',null,0,'${sub}')`
+        );
+        let user=await db.query(`SELECT * FROM user_Table WHERE email='${email}' AND sub='${sub}'` )
+        if(user[0].length>0){
+          const token = generateToken(res, user.id);
+          res.json({
+            id: user[0][0].id,
+            email: user[0][0].email,
+            token,
+          });
+        }
+        else{
+          res.status(400).json({ error: "Error while adding user with google" });
+        }
+      }
+      
+    } catch (error) {
+      console.log(error);
+      res.status(400).json({ error });
+    }
+  },
   verifyEmail: async (req, res) => {
     try {
       const userEmail = req.query.email;
