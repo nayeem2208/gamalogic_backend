@@ -11,6 +11,12 @@ const mySqlPool=mysql.createPool({
     database:"user"
 })
 
+// const mySqlPool=mysql.createPool({
+//     host:"localhost",
+//     user:"dbbetauser",
+//     password:password,
+//     database:"DB_GAMALOGIC"
+// })
 
 export default mySqlPool
 

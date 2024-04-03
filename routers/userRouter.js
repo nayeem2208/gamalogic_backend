@@ -8,5 +8,8 @@ router.post('/signup',Authentication.registerUser)
 router.get('/verifyEmail',Authentication.verifyEmail)
 router.post('/googleSignup',Authentication.googleAuth)
 router.post('/googleLogin',Authentication.googleLogin)
+router.post('/forgotPassword',Authentication.forgotPassword)
+router.post('/resetPassword',Authentication.resetPassword)
+
 
 export default router;
