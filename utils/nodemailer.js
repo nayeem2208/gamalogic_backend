@@ -14,16 +14,11 @@ const SendVerifyMail = (email) => {
 
   const mailoption = {
     from: process.env.FROMMAIL,
-    to: 'nayeem2281998@gmail.com',
+    to: "nayeem2281998@gmail.com",
 
     subject: "verify your mail",
     text: "hello",
-    html:
-      "<p>hi " +
-      email +
-      ',please click here to <a href="http://localhost:5173/login?email=' +
-      email +
-      '">verify</a> your mail</p>  ',
+    html: `<p>Hi ${email}, please click <a href="http://localhost:5173/login?email=${email}&referer=${encodeURIComponent(window.location.href)}">here</a> to reset your password</p>`,
   };
   transporter.sendMail(mailoption, function (error, info) {
     if (error) {

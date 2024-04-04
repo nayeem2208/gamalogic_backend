@@ -2,21 +2,35 @@ import db from "../config/DB.js";
 import generateToken from "../utils/jwt.js";
 import jwt from "jsonwebtoken";
 import SendVerifyMail from "../utils/nodemailer.js";
-import bcrypt from "bcryptjs";
+import bcrypt  from "bcryptjs";
 import SendForgotPasswordMail from "../utils/forgotNodemailer.js";
-import axios from "axios";
+import generateUniqueApiKey from "../utils/generatePassword.js";
+import passwordHash from "../utils/passwordHash.js";
+
+
+
 
 const Authentication = {
+  sample: async (req, res) => {
+    ///its for checking purpose
+    try {
+
+    } catch (error) {
+      console.log(error)
+    }
+  },
   login: async (req, res) => {
     try {
       const { email, password } = req.body;
       let user = await db.query(
-        `SELECT * FROM user_Table WHERE emailid='${email}'`
+        `SELECT * FROM registration WHERE emailid='${email}'`
       );
       if (user[0].length > 0) {
         const hashedPassword = user[0][0].password;
-        const passwordMatch = await bcrypt.compare(password, hashedPassword);
-        if (passwordMatch) {
+        const loginPasswordHashed=await passwordHash(password)
+        console.log(hashedPassword,loginPasswordHashed,'passwordsss')
+        // const passwordMatch = await bcrypt.compare(password, hashedPassword);
+        if (hashedPassword==loginPasswordHashed) {
           if (user[0][0].confirmed == 1) {
             let token = generateToken(res, user[0][0].rowid);
             res.json({
@@ -55,12 +69,13 @@ const Authentication = {
       // console.log(response,'data')
       // if(response.data.success){
       let userExists = await db.query(
-        `SELECT * FROM user_Table WHERE emailid='${email}'`
+        `SELECT * FROM registration WHERE emailid='${email}'`
       );
       if (userExists[0].length > 0) {
         res.status(401).json({ error: "User already exists" });
       } else {
-        let hashedPassword = await bcrypt.hash(password, 10);
+        // let hashedPassword = await bcrypt.hash(password, 10);
+        let hasedPassword=await passwordHash(password)
         const currentDate = new Date();
         const futureDate = new Date(currentDate);
         futureDate.setDate(currentDate.getDate() + 7);
@@ -72,9 +87,9 @@ const Authentication = {
           .toISOString()
           .slice(0, 19)
           .replace("T", " ");
-
+        let apiKey=await generateUniqueApiKey()
         await db.query(
-          `INSERT INTO user_Table(rowid,username,emailid,password,registered_on,confirmed,free_final,credits,credits_free,ip_address,user_agent,session_google,is_premium)VALUES(null,'${fullname}','${email}','${hashedPassword}','${formattedDate}',0,'${freeFinalDate}',0,500,'${ip}','${userAgent}',0,0)`
+          `INSERT INTO registration(rowid,username,emailid,password,registered_on,confirmed,api_key,free_final,credits,credits_free,ip_address,user_agent,session_google,is_premium)VALUES(null,'${fullname}','${email}','${hashedPassword}','${formattedDate}',0,'${apiKey}','${freeFinalDate}',0,500,'${ip}','${userAgent}',0,0)`
         );
         SendVerifyMail(email);
         res.status(200).json("Please check your email for verification");
@@ -95,7 +110,7 @@ const Authentication = {
       const decode = jwt.decode(token);
       const { email } = decode;
       let user = await db.query(
-        `SELECT * FROM user_Table WHERE emailid='${email}'`
+        `SELECT * FROM registration WHERE emailid='${email}'`
       );
       if (user[0].length > 0) {
         const token = generateToken(res, user[0][0].rowid);
@@ -120,7 +135,7 @@ const Authentication = {
       const { name, email } = decode;
 
       const userExists = await db.query(
-        `SELECT * FROM user_Table WHERE emailid='${email}'`
+        `SELECT * FROM registration WHERE emailid='${email}'`
       );
       if (userExists[0].length > 0) {
         res.status(400).json({ error: "User already exists" });
@@ -138,11 +153,15 @@ const Authentication = {
           .toISOString()
           .slice(0, 19)
           .replace("T", " ");
+
+
+          let apiKey=await generateUniqueApiKey()
+
         await db.query(
-          `INSERT INTO user_Table(rowid,username,emailid,password,registered_on,confirmed,confirmed_on,free_final,credits,credits_free,ip_address,user_agent,session_google,is_premium)VALUES(null,'${name}','${email}',0,'${formattedDate}',1,'${formattedDate}','${freeFinalDate}',0,500,'${ip}','${userAgent}',1,0)`
+          `INSERT INTO registration(rowid,username,emailid,password,registered_on,confirmed,confirmed_on,api_key,free_final,credits,credits_free,ip_address,user_agent,session_google,is_premium)VALUES(null,'${name}','${email}',0,'${formattedDate}',1,'${formattedDate}','${apiKey}','${freeFinalDate}',0,500,'${ip}','${userAgent}',1,0)`
         );
         let user = await db.query(
-          `SELECT * FROM user_Table WHERE emailid='${email}'`
+          `SELECT * FROM registration WHERE emailid='${email}'`
         );
         if (user[0].length > 0) {
           const token = generateToken(res, user[0][0].rowid);
@@ -163,12 +182,13 @@ const Authentication = {
   },
   verifyEmail: async (req, res) => {
     try {
+      console.log(req.headers,'headers')
       const userEmail = req.query.email;
       let confirmedDate = new Date();
-      const query = `UPDATE user_Table SET confirmed = 1 ,confirmed_on=?  WHERE emailid = ?`;
+      const query = `UPDATE registration SET confirmed = 1 ,confirmed_on=?  WHERE emailid = ?`;
       await db.query(query, [confirmedDate, userEmail]);
       let verifiedUser = await db.query(
-        `SELECT * FROM user_Table WHERE emailid='${userEmail}' AND confirmed=1`
+        `SELECT * FROM registration WHERE emailid='${userEmail}' AND confirmed=1`
       );
       if (verifiedUser.length > 0) {
         let token = generateToken(res, verifiedUser[0][0].rowid);
@@ -185,7 +205,7 @@ const Authentication = {
   forgotPassword: async (req, res) => {
     try {
       let user = await db.query(
-        `SELECT * FROM user_Table WHERE emailid='${req.body.email}'`
+        `SELECT * FROM registration WHERE emailid='${req.body.email}'`
       );
       if (user[0].length > 0) {
         SendForgotPasswordMail(req.body.email);
@@ -203,14 +223,14 @@ const Authentication = {
   resetPassword: async (req, res) => {
     try {
       let user = await db.query(
-        `SELECT * FROM user_Table WHERE emailid='${req.body.email}'`
+        `SELECT * FROM registration WHERE emailid='${req.body.email}'`
       );
       if (user[0].length > 0) {
-        console.log(req.body.password, "req password");
-        let hashedPassword = await bcrypt.hash(req.body.password, 10);
-        console.log(hashedPassword, "hashed");
+        // let hash = generateSHA256Hash(req.body.password);
+        let hashedPassword=await passwordHash(req.body.password)
+        console.log(hashedPassword,'hashed password')
         await db.query(
-          `UPDATE user_Table SET password='${hashedPassword}' WHERE emailid='${req.body.email}'`
+          `UPDATE registration SET password='${hashedPassword}' WHERE emailid='${req.body.email}'`
         );
         res.status(200).json({ message: "password succesfully updated" });
       } else {
