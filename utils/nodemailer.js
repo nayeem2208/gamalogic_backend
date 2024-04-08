@@ -18,7 +18,7 @@ const SendVerifyMail = (email) => {
 
     subject: "verify your mail",
     text: "hello",
-    html: `<p>Hi ${email}, please click <a href="http://localhost:5173/login?email=${email}&referer=${encodeURIComponent(window.location.href)}">here</a> to reset your password</p>`,
+    html: `<p>Hi ${email}, please click <a href="http://localhost:5173/login?email=${email}">here</a> to reset your password</p>`,
   };
   transporter.sendMail(mailoption, function (error, info) {
     if (error) {

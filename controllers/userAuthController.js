@@ -2,21 +2,30 @@ import db from "../config/DB.js";
 import generateToken from "../utils/jwt.js";
 import jwt from "jsonwebtoken";
 import SendVerifyMail from "../utils/nodemailer.js";
-import bcrypt  from "bcryptjs";
+import bcrypt from "bcryptjs";
 import SendForgotPasswordMail from "../utils/forgotNodemailer.js";
 import generateUniqueApiKey from "../utils/generatePassword.js";
-import passwordHash from "../utils/passwordHash.js";
-
-
-
+import { passwordHash, verifyPassword } from "../utils/passwordHash.js";
+import zeptomailsend from "../utils/zeptoMail.js";
+import sendEmail from "../utils/zeptoMail.js";
+import axios from "axios";
+import clickUp from "../utils/ClickUp.js";
 
 const Authentication = {
   sample: async (req, res) => {
     ///its for checking purpose
     try {
-
+      // zeptomailsend()
+      let res = await axios.get("http:localhot:3000/hi");
     } catch (error) {
-      console.log(error)
+      let errorName = "UnknownError";
+      if (error.constructor && error.constructor.name) {
+        errorName = error.constructor.name;
+      }
+      const currentDate = new Date().toISOString().split("T")[0];
+      errorName += `_${currentDate}`;
+      let errorDescription = JSON.stringify(error);
+      let res = await clickUp(errorName, errorDescription);
     }
   },
   login: async (req, res) => {
@@ -27,10 +36,8 @@ const Authentication = {
       );
       if (user[0].length > 0) {
         const hashedPassword = user[0][0].password;
-        const loginPasswordHashed=await passwordHash(password)
-        console.log(hashedPassword,loginPasswordHashed,'passwordsss')
-        // const passwordMatch = await bcrypt.compare(password, hashedPassword);
-        if (hashedPassword==loginPasswordHashed) {
+        let passwordMatch = await verifyPassword(password, hashedPassword);
+        if (passwordMatch) {
           if (user[0][0].confirmed == 1) {
             let token = generateToken(res, user[0][0].rowid);
             res.json({
@@ -47,7 +54,14 @@ const Authentication = {
         res.status(401).json({ error: "Invalid User" });
       }
     } catch (error) {
-      console.log(error);
+      let errorName = "UnknownError";
+      if (error.constructor && error.constructor.name) {
+        errorName = error.constructor.name;
+      }
+      const currentDate = new Date().toISOString().split("T")[0];
+      errorName += `_${currentDate}`;
+      let errorDescription = JSON.stringify(error);
+      let res = await clickUp(errorName, errorDescription);
       res.status(400).json(error);
     }
   },
@@ -75,7 +89,7 @@ const Authentication = {
         res.status(401).json({ error: "User already exists" });
       } else {
         // let hashedPassword = await bcrypt.hash(password, 10);
-        let hasedPassword=await passwordHash(password)
+        let hashedPassword = await passwordHash(password);
         const currentDate = new Date();
         const futureDate = new Date(currentDate);
         futureDate.setDate(currentDate.getDate() + 7);
@@ -87,7 +101,7 @@ const Authentication = {
           .toISOString()
           .slice(0, 19)
           .replace("T", " ");
-        let apiKey=await generateUniqueApiKey()
+        let apiKey = await generateUniqueApiKey();
         await db.query(
           `INSERT INTO registration(rowid,username,emailid,password,registered_on,confirmed,api_key,free_final,credits,credits_free,ip_address,user_agent,session_google,is_premium)VALUES(null,'${fullname}','${email}','${hashedPassword}','${formattedDate}',0,'${apiKey}','${freeFinalDate}',0,500,'${ip}','${userAgent}',0,0)`
         );
@@ -99,6 +113,14 @@ const Authentication = {
       //   res.status(400).json({error:'Failed in human verification'})
       // }
     } catch (error) {
+      let errorName = "UnknownError";
+      if (error.constructor && error.constructor.name) {
+        errorName = error.constructor.name;
+      }
+      const currentDate = new Date().toISOString().split("T")[0];
+      errorName += `_${currentDate}`;
+      let errorDescription = JSON.stringify(error);
+      let res = await clickUp(errorName, errorDescription);
       res
         .status(500)
         .json({ message: "Registration failed", error: error.message });
@@ -125,6 +147,14 @@ const Authentication = {
         });
       }
     } catch (error) {
+      let errorName = "UnknownError";
+      if (error.constructor && error.constructor.name) {
+        errorName = error.constructor.name;
+      }
+      const currentDate = new Date().toISOString().split("T")[0];
+      errorName += `_${currentDate}`;
+      let errorDescription = JSON.stringify(error);
+      let res = await clickUp(errorName, errorDescription);
       res.status(400).json(error);
     }
   },
@@ -154,8 +184,7 @@ const Authentication = {
           .slice(0, 19)
           .replace("T", " ");
 
-
-          let apiKey=await generateUniqueApiKey()
+        let apiKey = await generateUniqueApiKey();
 
         await db.query(
           `INSERT INTO registration(rowid,username,emailid,password,registered_on,confirmed,confirmed_on,api_key,free_final,credits,credits_free,ip_address,user_agent,session_google,is_premium)VALUES(null,'${name}','${email}',0,'${formattedDate}',1,'${formattedDate}','${apiKey}','${freeFinalDate}',0,500,'${ip}','${userAgent}',1,0)`
@@ -177,16 +206,23 @@ const Authentication = {
       }
     } catch (error) {
       console.log(error);
+      let errorName = "UnknownError";
+      if (error.constructor && error.constructor.name) {
+        errorName = error.constructor.name;
+      }
+      const currentDate = new Date().toISOString().split("T")[0];
+      errorName += `_${currentDate}`;
+      let errorDescription = JSON.stringify(error);
+      let res = await clickUp(errorName, errorDescription);
       res.status(400).json({ error });
     }
   },
   verifyEmail: async (req, res) => {
     try {
-      console.log(req.headers,'headers')
       const userEmail = req.query.email;
       let confirmedDate = new Date();
-      const query = `UPDATE registration SET confirmed = 1 ,confirmed_on=?  WHERE emailid = ?`;
-      await db.query(query, [confirmedDate, userEmail]);
+      const query = `UPDATE registration SET confirmed = 1 ,confirmed_on=? ,referer=? WHERE emailid = ?`;
+      await db.query(query, [confirmedDate, req.headers.origin, userEmail]);
       let verifiedUser = await db.query(
         `SELECT * FROM registration WHERE emailid='${userEmail}' AND confirmed=1`
       );
@@ -199,6 +235,14 @@ const Authentication = {
       }
     } catch (error) {
       console.log(error);
+      let errorName = "UnknownError";
+      if (error.constructor && error.constructor.name) {
+        errorName = error.constructor.name;
+      }
+      const currentDate = new Date().toISOString().split("T")[0];
+      errorName += `_${currentDate}`;
+      let errorDescription = JSON.stringify(error);
+      let res = await clickUp(errorName, errorDescription);
       res.status(400).json({ error });
     }
   },
@@ -217,6 +261,14 @@ const Authentication = {
       }
     } catch (error) {
       console.log(error);
+      let errorName = "UnknownError";
+      if (error.constructor && error.constructor.name) {
+        errorName = error.constructor.name;
+      }
+      const currentDate = new Date().toISOString().split("T")[0];
+      errorName += `_${currentDate}`;
+      let errorDescription = JSON.stringify(error);
+      let res = await clickUp(errorName, errorDescription);
       res.status(400).json(error);
     }
   },
@@ -227,8 +279,8 @@ const Authentication = {
       );
       if (user[0].length > 0) {
         // let hash = generateSHA256Hash(req.body.password);
-        let hashedPassword=await passwordHash(req.body.password)
-        console.log(hashedPassword,'hashed password')
+        let hashedPassword = await passwordHash(req.body.password);
+        console.log(hashedPassword, "hashed password");
         await db.query(
           `UPDATE registration SET password='${hashedPassword}' WHERE emailid='${req.body.email}'`
         );
@@ -238,6 +290,14 @@ const Authentication = {
       }
     } catch (error) {
       console.log(error);
+      let errorName = "UnknownError";
+      if (error.constructor && error.constructor.name) {
+        errorName = error.constructor.name;
+      }
+      const currentDate = new Date().toISOString().split("T")[0];
+      errorName += `_${currentDate}`;
+      let errorDescription = JSON.stringify(error);
+      let res = await clickUp(errorName, errorDescription);
       res.status(400).json({ error });
     }
   },
