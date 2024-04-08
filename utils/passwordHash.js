@@ -1,12 +1,20 @@
 import axios from "axios"
+import urls from "../ConstFiles/urls.js"
 
-const passwordHash=async(password)=>{
+export const passwordHash=async(password)=>{
     try {
-        let hasedPassword=await axios.get(`http://64.227.164.87/hashpassword?password=${password}`)
+        let hasedPassword=await axios.get(`${urls.passwordUrl}/hashpassword?password=${password}`)
         return hasedPassword.data
     } catch (error) {
         console.log(error)
     }
 }
 
-export default passwordHash
+export const verifyPassword=async(password,hashedPassword)=>{
+    try {
+        let hasedPassword=await axios.get(`${urls.passwordUrl}/hashverify?password=${password}&hash=${hashedPassword}`)
+        return hasedPassword.data
+    } catch (error) {
+        console.log(error)
+    }
+}
