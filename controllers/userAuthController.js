@@ -2,30 +2,25 @@ import db from "../config/DB.js";
 import generateToken from "../utils/jwt.js";
 import jwt from "jsonwebtoken";
 import SendVerifyMail from "../utils/nodemailer.js";
-import bcrypt from "bcryptjs";
 import SendForgotPasswordMail from "../utils/forgotNodemailer.js";
 import generateUniqueApiKey from "../utils/generatePassword.js";
 import { passwordHash, verifyPassword } from "../utils/passwordHash.js";
 import zeptomailsend from "../utils/zeptoMail.js";
 import sendEmail from "../utils/zeptoMail.js";
 import axios from "axios";
-import clickUp from "../utils/ClickUp.js";
+import ErrorHandler from "../utils/errorHandler.js";
+
 
 const Authentication = {
   sample: async (req, res) => {
     ///its for checking purpose
     try {
-      // zeptomailsend()
-      let res = await axios.get("http:localhot:3000/hi");
+      // Simulating an error for demonstration purposes
+      // console.log(req.route.path,'original url')
+      // console.log(johnhoe)
+      let response = await axios.get("http://localhost:3000/hi");
     } catch (error) {
-      let errorName = "UnknownError";
-      if (error.constructor && error.constructor.name) {
-        errorName = error.constructor.name;
-      }
-      const currentDate = new Date().toISOString().split("T")[0];
-      errorName += `_${currentDate}`;
-      let errorDescription = JSON.stringify(error);
-      let res = await clickUp(errorName, errorDescription);
+      ErrorHandler("Sample Controller", error, req);
     }
   },
   login: async (req, res) => {
@@ -54,23 +49,16 @@ const Authentication = {
         res.status(401).json({ error: "Invalid User" });
       }
     } catch (error) {
-      let errorName = "UnknownError";
-      if (error.constructor && error.constructor.name) {
-        errorName = error.constructor.name;
-      }
-      const currentDate = new Date().toISOString().split("T")[0];
-      errorName += `_${currentDate}`;
-      let errorDescription = JSON.stringify(error);
-      let res = await clickUp(errorName, errorDescription);
+      ErrorHandler("Login Controller", error, req);
       res.status(400).json(error);
     }
   },
   registerUser: async (req, res) => {
-    const { fullname, email, password } = req.body.data;
-    const userAgent = req.headers["user-agent"];
-    const ip = req.ip;
-
+    
     try {
+      const { fullname, email, password } = req.body.data;
+      const userAgent = req.headers["user-agent"];
+      const ip = req.ip;
       // console.log(req.body.token,'token')
       // console.log(process.env.RECAPTCHA_SECRET_KEY,'key is getting ')
       // const response = await axios.post(
@@ -113,14 +101,7 @@ const Authentication = {
       //   res.status(400).json({error:'Failed in human verification'})
       // }
     } catch (error) {
-      let errorName = "UnknownError";
-      if (error.constructor && error.constructor.name) {
-        errorName = error.constructor.name;
-      }
-      const currentDate = new Date().toISOString().split("T")[0];
-      errorName += `_${currentDate}`;
-      let errorDescription = JSON.stringify(error);
-      let res = await clickUp(errorName, errorDescription);
+      ErrorHandler("registerUser Controller", error, req);
       res
         .status(500)
         .json({ message: "Registration failed", error: error.message });
@@ -147,14 +128,7 @@ const Authentication = {
         });
       }
     } catch (error) {
-      let errorName = "UnknownError";
-      if (error.constructor && error.constructor.name) {
-        errorName = error.constructor.name;
-      }
-      const currentDate = new Date().toISOString().split("T")[0];
-      errorName += `_${currentDate}`;
-      let errorDescription = JSON.stringify(error);
-      let res = await clickUp(errorName, errorDescription);
+      ErrorHandler("googleLogin Controller", error, req);
       res.status(400).json(error);
     }
   },
@@ -206,14 +180,7 @@ const Authentication = {
       }
     } catch (error) {
       console.log(error);
-      let errorName = "UnknownError";
-      if (error.constructor && error.constructor.name) {
-        errorName = error.constructor.name;
-      }
-      const currentDate = new Date().toISOString().split("T")[0];
-      errorName += `_${currentDate}`;
-      let errorDescription = JSON.stringify(error);
-      let res = await clickUp(errorName, errorDescription);
+      ErrorHandler("googleAuth Controller", error, req);
       res.status(400).json({ error });
     }
   },
@@ -235,14 +202,7 @@ const Authentication = {
       }
     } catch (error) {
       console.log(error);
-      let errorName = "UnknownError";
-      if (error.constructor && error.constructor.name) {
-        errorName = error.constructor.name;
-      }
-      const currentDate = new Date().toISOString().split("T")[0];
-      errorName += `_${currentDate}`;
-      let errorDescription = JSON.stringify(error);
-      let res = await clickUp(errorName, errorDescription);
+      ErrorHandler("verifyEmail Controller", error, req);
       res.status(400).json({ error });
     }
   },
@@ -261,14 +221,7 @@ const Authentication = {
       }
     } catch (error) {
       console.log(error);
-      let errorName = "UnknownError";
-      if (error.constructor && error.constructor.name) {
-        errorName = error.constructor.name;
-      }
-      const currentDate = new Date().toISOString().split("T")[0];
-      errorName += `_${currentDate}`;
-      let errorDescription = JSON.stringify(error);
-      let res = await clickUp(errorName, errorDescription);
+      ErrorHandler("forgotPassword Controller", error, req);
       res.status(400).json(error);
     }
   },
@@ -290,14 +243,7 @@ const Authentication = {
       }
     } catch (error) {
       console.log(error);
-      let errorName = "UnknownError";
-      if (error.constructor && error.constructor.name) {
-        errorName = error.constructor.name;
-      }
-      const currentDate = new Date().toISOString().split("T")[0];
-      errorName += `_${currentDate}`;
-      let errorDescription = JSON.stringify(error);
-      let res = await clickUp(errorName, errorDescription);
+      ErrorHandler("resetPassword Controller", error, req);
       res.status(400).json({ error });
     }
   },
