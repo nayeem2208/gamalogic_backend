@@ -1,15 +1,11 @@
 import db from "../config/DB.js";
 import generateToken from "../utils/jwt.js";
 import jwt from "jsonwebtoken";
-import SendVerifyMail from "../utils/nodemailer.js";
-import SendForgotPasswordMail from "../utils/forgotNodemailer.js";
 import generateUniqueApiKey from "../utils/generatePassword.js";
 import { passwordHash, verifyPassword } from "../utils/passwordHash.js";
-import zeptomailsend from "../utils/zeptoMail.js";
 import sendEmail from "../utils/zeptoMail.js";
 import axios from "axios";
 import ErrorHandler from "../utils/errorHandler.js";
-
 
 const Authentication = {
   sample: async (req, res) => {
@@ -18,7 +14,8 @@ const Authentication = {
       // Simulating an error for demonstration purposes
       // console.log(req.route.path,'original url')
       // console.log(johnhoe)
-      let response = await axios.get("http://localhost:3000/hi");
+      // sendEmail('nayeem@gmail.com')
+      // let response = await axios.get("http://localhost:3000/hi");
     } catch (error) {
       ErrorHandler("Sample Controller", error, req);
     }
@@ -35,8 +32,24 @@ const Authentication = {
         if (passwordMatch) {
           if (user[0][0].confirmed == 1) {
             let token = generateToken(res, user[0][0].rowid);
+            let creditBal;
+
+            if (user[0][0].credits > 0) {
+              creditBal = user[0][0].credits;
+            } else if (user[0][0].credits_free > 0) {
+              let finalFree = new Date(user[0][0].free_final);
+              let finalFreeDate = new Date(finalFree);
+              let currentDate = new Date();
+              if (finalFreeDate > currentDate) {
+                creditBal = user[0][0].credits_free;
+              } else creditBal = 0;
+            } else {
+              creditBal = 0;
+            }
+
             res.json({
               name: user[0][0].username,
+              credit: creditBal,
               token,
             });
           } else {
@@ -54,7 +67,6 @@ const Authentication = {
     }
   },
   registerUser: async (req, res) => {
-    
     try {
       const { fullname, email, password } = req.body.data;
       const userAgent = req.headers["user-agent"];
@@ -93,7 +105,11 @@ const Authentication = {
         await db.query(
           `INSERT INTO registration(rowid,username,emailid,password,registered_on,confirmed,api_key,free_final,credits,credits_free,ip_address,user_agent,session_google,is_premium)VALUES(null,'${fullname}','${email}','${hashedPassword}','${formattedDate}',0,'${apiKey}','${freeFinalDate}',0,500,'${ip}','${userAgent}',0,0)`
         );
-        SendVerifyMail(email);
+        sendEmail(
+          email,
+          "Please verify your account",
+          `<p>Hi ${email}, please click <a href="http://localhost:5173/signin?email=${email}&track=true">here</a> to verify your account </p>`
+        );
         res.status(200).json("Please check your email for verification");
       }
       // }
@@ -117,8 +133,24 @@ const Authentication = {
       );
       if (user[0].length > 0) {
         const token = generateToken(res, user[0][0].rowid);
+        let creditBal;
+
+        if (user[0][0].credits > 0) {
+          creditBal = user[0][0].credits;
+        } else if (user[0][0].credits_free > 0) {
+          let finalFree = new Date(user[0][0].free_final);
+          let finalFreeDate = new Date(finalFree);
+          let currentDate = new Date();
+          if (finalFreeDate > currentDate) {
+            creditBal = user[0][0].credits_free;
+          } else creditBal = 0;
+        } else {
+          creditBal = 0;
+        }
+
         res.status(200).json({
           name: user[0][0].username,
+          credit: creditBal,
           token,
         });
       } else {
@@ -170,6 +202,7 @@ const Authentication = {
           const token = generateToken(res, user[0][0].rowid);
           res.json({
             name: user[0][0].username,
+            credit: 500,
             token,
           });
         } else {
@@ -186,6 +219,7 @@ const Authentication = {
   },
   verifyEmail: async (req, res) => {
     try {
+      console.log("verifyi il etheetindtta");
       const userEmail = req.query.email;
       let confirmedDate = new Date();
       const query = `UPDATE registration SET confirmed = 1 ,confirmed_on=? ,referer=? WHERE emailid = ?`;
@@ -212,7 +246,15 @@ const Authentication = {
         `SELECT * FROM registration WHERE emailid='${req.body.email}'`
       );
       if (user[0].length > 0) {
-        SendForgotPasswordMail(req.body.email);
+        sendEmail(
+          req.body.email,
+          "Reset your password",
+          "<p>hi " +
+            req.body.email +
+            ',please click <a href="http://localhost:5173/resetPassword?email=' +
+            req.body.email +
+            '">here </a> to reset your password</p>  '
+        );
         res
           .status(200)
           .json({ message: "Please check your email for reset password link" });

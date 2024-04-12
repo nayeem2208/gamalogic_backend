@@ -1,7 +1,7 @@
 import { SendMailClient } from "zeptomail";
 
-async function zeptomailsend() {
-    const url = "zeptomail.zoho.com/";
+async function zeptomailsend(email,subject,content) {
+    const url =  "api.zeptomail.com/"; 
   const token =process.env.ZEPTOMAIL_TOKEN
 
   let client = new SendMailClient({ url, token });
@@ -9,7 +9,7 @@ async function zeptomailsend() {
   try {
     const resp = await client.sendMail({
       from: {
-        address: "nayeem2281998@gmail.com",
+        address: "nayeem@gamalogic.com",
         name: "test",
       },
       to: [
@@ -20,15 +20,15 @@ async function zeptomailsend() {
           },
         },
       ],
-      subject: "Sending with ZeptoMail to have good experience",
-      textbody: "Easy to do from anywhere, with Node.js",
-      htmlbody: "Easy to do from anywhere, with Node.js",
+      subject:subject,
+      textbody: "hello",
+      htmlbody: content,
       track_clicks: true,
       track_opens: true,
-      client_reference: "",
-      mime_headers: {
-        "X-Zylker-User": "test-xxxx",
-      },
+      // client_reference: "",
+      // mime_headers: {
+      //   "X-Zylker-User": "test-xxxx",
+      // },
     });
     console.log("Success:", resp);
   } catch (error) {

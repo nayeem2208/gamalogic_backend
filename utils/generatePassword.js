@@ -1,7 +1,7 @@
 import db from "../config/DB.js";
 function generateApiKey() {
     const characters =
-        'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        'abcdefghijklmnopqrstuvwxyz0123456789';
     const length = 32;
     let apiKey = '';
     for (let i = 0; i < length; i++) {

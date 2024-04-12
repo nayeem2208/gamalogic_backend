@@ -14,7 +14,7 @@ router.post('/googleLogin',Authentication.googleLogin)
 router.post('/forgotPassword',Authentication.forgotPassword)
 router.post('/resetPassword',Authentication.resetPassword)
 
-
+router.post('/singleEmailValidator',authcheck,APIControllers.emailValidation)
 router.get('/getApiKey',authcheck,APIControllers.getApi)
 router.get('/resetApiKey',authcheck,APIControllers.resetApiKey)
 
