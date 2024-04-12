@@ -10,7 +10,7 @@ const ErrorHandler = async (controller, error, req) => {
         error.stack.split("\n")[1].trim().split(":")[1]) ||
       "UnknownLine";
     const url = req.route.path;
-    let err = JSON.stringify(error);
+    let err = error;
     const errorMessage = `
         Error occurred in file ${controller},
         line ${lineNumber},
