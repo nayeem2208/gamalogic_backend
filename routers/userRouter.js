@@ -15,8 +15,9 @@ router.post('/forgotPassword',Authentication.forgotPassword)
 router.post('/resetPassword',Authentication.resetPassword)
 
 router.post('/singleEmailValidator',authcheck,APIControllers.emailValidation)
+router.post('/singleEmailFinder',authcheck,APIControllers.FindSingleEmail)
 router.get('/getApiKey',authcheck,APIControllers.getApi)
 router.get('/resetApiKey',authcheck,APIControllers.resetApiKey)
-
+router.post('/changePassword',authcheck,APIControllers.changePassword)
 
 export default router;
