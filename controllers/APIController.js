@@ -2,6 +2,7 @@ import axios from "axios";
 import db from "../config/DB.js";
 import generateUniqueApiKey from "../utils/generatePassword.js";
 import ErrorHandler from "../utils/errorHandler.js";
+import { passwordHash, verifyPassword } from "../utils/passwordHash.js";
 let APIControllers = {
   getApi: async (req, res) => {
     try {
@@ -44,8 +45,53 @@ let APIControllers = {
       res.status(200).json(validate.data.gamalogic_emailid_vrfy[0]);
     } catch (error) {
       console.log(error);
-      // ErrorHandler("emailValidation Controller", error, req);
+      ErrorHandler("emailValidation Controller", error, req);
       res.status(400).json(error);
+    }
+  },
+  FindSingleEmail: async (req, res) => {
+    try {
+      let user = await db.query(
+        `SELECT api_key from registration WHERE emailid='${req.user[0][0].emailid}'`
+      );
+      let nameArray = req.body.fullname.split(" ");
+      let firstname = nameArray[0];
+      let lastname = nameArray[nameArray.length - 1];
+      let apiKey = user[0][0].api_key;
+      let find = await axios.get(
+        `https://gamalogic.com/email-discovery/?firstname=${firstname}&lastname=${lastname}&domain=${req.body.domain}&apikey=${process.env.API_KEY}&speed_rank=0`
+      );
+      console.log(find.data, "find result");
+      res.status(200).json(find.data);
+    } catch (error) {
+      console.log(error);
+      ErrorHandler("FindSingleEmail Controller", error, req);
+    }
+  },
+  changePassword: async (req, res) => {
+    try {
+      let { old, newPassword, confirm } = req.body; 
+      console.log(old, "old", newPassword, "new", confirm);
+      let user = await db.query(
+        `SELECT * from registration WHERE emailid='${req.user[0][0].emailid}'`
+      );
+      const hashedPassword = user[0][0].password;
+      let passwordMatch = await verifyPassword(old, hashedPassword);
+      if (!passwordMatch) {
+        console.log('password match aayilla')
+        res.status(400).json({ message: "Old password is not correct" });
+      } else {
+        let hashedPasswordForDatabase = await passwordHash(newPassword);
+        console.log('ivda vare ok')
+        await db.query(
+          `UPDATE registration SET password='${hashedPasswordForDatabase}' WHERE emailid='${req.user[0][0].emailid}'`
+        );
+        console.log('add um aayi ')
+        res.status(200).json({ message: "Password successfully changed" });
+      }
+    } catch (error) {
+      console.log(error);
+      ErrorHandler("changePassword Controller", error, req);
     }
   },
 };
