@@ -3,6 +3,7 @@ import db from "../config/DB.js";
 import generateUniqueApiKey from "../utils/generatePassword.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import { passwordHash, verifyPassword } from "../utils/passwordHash.js";
+import CsvToJson from "../utils/CsvConvert.js";
 let APIControllers = {
   getApi: async (req, res) => {
     try {
@@ -66,6 +67,7 @@ let APIControllers = {
     } catch (error) {
       console.log(error);
       ErrorHandler("FindSingleEmail Controller", error, req);
+      res.status(400).json(error);
     }
   },
   changePassword: async (req, res) => {
@@ -92,7 +94,36 @@ let APIControllers = {
     } catch (error) {
       console.log(error);
       ErrorHandler("changePassword Controller", error, req);
+      res.status(400).json(error);
     }
   },
+  batchEmailValidation:async(req,res)=>{
+    try {
+      let user = await db.query(
+        `SELECT api_key from registration WHERE emailid='${req.user[0][0].emailid}'`
+      );
+      let apiKey = user[0][0].api_key;
+      const csvFile = 'public/'+req.file.filename
+      const jsonArray = await CsvToJson(csvFile);
+      const data = {
+        "gamalogic_emailid_vrfy": jsonArray.map(item => ({ "emailid": item.emailid }))
+      };
+      
+      let response=await axios.post(`https://gamalogic.com/batchemailvrf?apikey=${process.env.API_KEY}&speed_rank=0`,data)
+      res.status(200).json(response.data)
+    } catch (error) {
+      console.log(error)
+      res.status(400).json(error);
+    }
+  },
+  batchEmailStatus:async(req,res)=>{
+    try {
+      let status=await axios.get(`https://gamalogic.com/batchstatus/?apikey=${process.env.API_KEY}&batchid=${req.query.id}`)
+      console.log(status.data,'status')
+    } catch (error) {
+      console.log(error)
+      res.status(400).json(error);
+    }
+  }
 };
 export default APIControllers;
