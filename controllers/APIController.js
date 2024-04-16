@@ -3,7 +3,7 @@ import db from "../config/DB.js";
 import generateUniqueApiKey from "../utils/generatePassword.js";
 import ErrorHandler from "../utils/errorHandler.js";
 import { passwordHash, verifyPassword } from "../utils/passwordHash.js";
-import CsvToJson from "../utils/CsvConvert.js";
+
 let APIControllers = {
   getApi: async (req, res) => {
     try {
@@ -72,7 +72,7 @@ let APIControllers = {
   },
   changePassword: async (req, res) => {
     try {
-      let { old, newPassword, confirm } = req.body; 
+      let { old, newPassword, confirm } = req.body;
       console.log(old, "old", newPassword, "new", confirm);
       let user = await db.query(
         `SELECT * from registration WHERE emailid='${req.user[0][0].emailid}'`
@@ -80,15 +80,15 @@ let APIControllers = {
       const hashedPassword = user[0][0].password;
       let passwordMatch = await verifyPassword(old, hashedPassword);
       if (!passwordMatch) {
-        console.log('password match aayilla')
+        console.log("password match aayilla");
         res.status(400).json({ message: "Old password is not correct" });
       } else {
         let hashedPasswordForDatabase = await passwordHash(newPassword);
-        console.log('ivda vare ok')
+        console.log("ivda vare ok");
         await db.query(
           `UPDATE registration SET password='${hashedPasswordForDatabase}' WHERE emailid='${req.user[0][0].emailid}'`
         );
-        console.log('add um aayi ')
+        console.log("add um aayi ");
         res.status(200).json({ message: "Password successfully changed" });
       }
     } catch (error) {
@@ -97,33 +97,89 @@ let APIControllers = {
       res.status(400).json(error);
     }
   },
-  batchEmailValidation:async(req,res)=>{
+  getAlreadyCheckedBatchEmailFiles:async(req,res)=>{
+    try {
+      let user = await db.query(
+        `SELECT * from registration WHERE emailid='${req.user[0][0].emailid}'`
+      );
+      let files=await db.query(`SELECT * FROM useractivity_batch_link where userid='${user[0][0].rowid}'`)
+      console.log(files[0],'files')
+      res.status(200).json(files[0])
+    } catch (error) {
+      console.log(error);
+      ErrorHandler("getAlreadyCheckedBatchEmailFiles Controller", error, req);
+      res.status(400).json(error);
+    }
+  },
+  batchEmailValidation: async (req, res) => {
+    try {
+      console.log(req.body.fileName,'req.body is here')
+      let user = await db.query(
+        `SELECT * from registration WHERE emailid='${req.user[0][0].emailid}'`
+      );
+      let apiKey = user[0][0].api_key;
+      const data = {
+        gamalogic_emailid_vrfy: req.body.data,
+      };
+      console.log(data)
+      let response = await axios.post(
+        `https://gamalogic.com/batchemailvrf?apikey=${process.env.API_KEY}&speed_rank=0`,
+        data
+      );
+      console.log(response, "response is here ");
+
+      let currenttime = new Date();
+      const formattedDate = currenttime
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ");
+      const userAgent = req.headers["user-agent"];
+      const ip = req.ip;
+      let fileAdded = await db.query(
+        `INSERT INTO useractivity_batch_link(id,userid,apikey,date_time,speed_rank,count,ip_address,user_agent,file,file_upload,is_api,is_api_file,is_dashboard)VALUES('${response.data["batch id"]}','${user[0][0].rowid}','${apiKey}','${formattedDate}',0,'${response.data["total count"]}','${ip}','${userAgent}','${req.body.fileName}','${req.body.fileName}',1,0,0)`
+      );
+      let files=await db.query(`SELECT * FROM useractivity_batch_link where id='${response.data["batch id"]}'`)
+        console.log(files[0],'fiels')
+      res.status(200).json({message:response.data.message,files:files[0][0]});
+    } catch (error) {
+      console.log(error);
+      ErrorHandler("batchEmailValidation Controller", error, req);
+      res.status(400).json(error);
+    }
+  },
+  batchEmailStatus: async (req, res) => {
     try {
       let user = await db.query(
         `SELECT api_key from registration WHERE emailid='${req.user[0][0].emailid}'`
       );
       let apiKey = user[0][0].api_key;
-      const csvFile = 'public/'+req.file.filename
-      const jsonArray = await CsvToJson(csvFile);
-      const data = {
-        "gamalogic_emailid_vrfy": jsonArray.map(item => ({ "emailid": item.emailid }))
-      };
-      
-      let response=await axios.post(`https://gamalogic.com/batchemailvrf?apikey=${process.env.API_KEY}&speed_rank=0`,data)
-      res.status(200).json(response.data)
+      let emailStatus = await axios.get(
+        `https://gamalogic.com/batchstatus/?apikey=${process.env.API_KEY}&batchid=${req.query.id}`
+      );
+      console.log(emailStatus.data, "status");
+      res.status(200).json({ emailStatus: emailStatus.data });
     } catch (error) {
-      console.log(error)
+      console.log(error);
+      ErrorHandler("batchEmailStatus Controller", error, req);
       res.status(400).json(error);
     }
   },
-  batchEmailStatus:async(req,res)=>{
+  downloadEmailVerificationFile: async (req, res) => {
     try {
-      let status=await axios.get(`https://gamalogic.com/batchstatus/?apikey=${process.env.API_KEY}&batchid=${req.query.id}`)
-      console.log(status.data,'status')
+      console.log(req.query.batchId, "query");
+      let user = await db.query(
+        `SELECT api_key from registration WHERE emailid='${req.user[0][0].emailid}'`
+      );
+      let apiKey = user[0][0].api_key;
+      let download = await axios.get(
+        `https://gamalogic.com/batchresult/?apikey=${process.env.API_KEY}&batchid=${req.query.batchId}`
+      );
+      res.status(200).json(download.data);
     } catch (error) {
-      console.log(error)
+      console.log(error);
+      ErrorHandler("downloadEmailVerificationFile Controller", error, req);
       res.status(400).json(error);
     }
-  }
+  },
 };
 export default APIControllers;
