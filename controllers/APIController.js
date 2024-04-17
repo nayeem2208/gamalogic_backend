@@ -113,7 +113,7 @@ let APIControllers = {
   },
   batchEmailValidation: async (req, res) => {
     try {
-      console.log(req.body.fileName,'req.body is here')
+      console.log(req.body.data,'req.body is here')
       let user = await db.query(
         `SELECT * from registration WHERE emailid='${req.user[0][0].emailid}'`
       );
@@ -160,7 +160,7 @@ let APIControllers = {
       res.status(200).json({ emailStatus: emailStatus.data });
     } catch (error) {
       console.log(error);
-      ErrorHandler("batchEmailStatus Controller", error, req);
+      // ErrorHandler("batchEmailStatus Controller", error, req);
       res.status(400).json(error);
     }
   },
@@ -181,5 +181,24 @@ let APIControllers = {
       res.status(400).json(error);
     }
   },
+
+  batchEmailFinder:async(req,res)=>{
+    try {
+      console.log(req.body.data,'req body')
+      let user = await db.query(
+        `SELECT * from registration WHERE emailid='${req.user[0][0].emailid}'`
+      );
+      let apiKey = user[0][0].api_key;
+      let data=req.body.data
+      let response = await axios.post(
+        `https://gamalogic.com/fileuploader-finder?apikey=${process.env.API_KEY}&speed_rank=0`,
+        data
+      ); 
+      console.log(response,'response is here')
+    } catch (error) {
+      console.log(error)
+      res.status(400).json(error)
+    }
+  }
 };
 export default APIControllers;

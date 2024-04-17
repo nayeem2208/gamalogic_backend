@@ -16,10 +16,17 @@ router.post('/resetPassword',Authentication.resetPassword)
 
 router.post('/singleEmailValidator',authcheck,APIControllers.emailValidation)
 router.post('/singleEmailFinder',authcheck,APIControllers.FindSingleEmail)
+
+//file based email validation
 router.get('/getAllUploadedEmailValidationFiles',authcheck,APIControllers.getAlreadyCheckedBatchEmailFiles)
 router.post('/batchEmailVerification',authcheck,APIControllers.batchEmailValidation)
 router.get('/getBatchStatus',authcheck,APIControllers.batchEmailStatus)
 router.get('/downloadEmailVerificationFile',authcheck,APIControllers.downloadEmailVerificationFile)
+
+//file based email finder 
+router.post('/batchEmailFinder',authcheck,APIControllers.batchEmailFinder)
+
+
 router.get('/getApiKey',authcheck,APIControllers.getApi)
 router.get('/resetApiKey',authcheck,APIControllers.resetApiKey)
 router.post('/changePassword',authcheck,APIControllers.changePassword)
