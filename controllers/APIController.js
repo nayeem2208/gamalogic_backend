@@ -182,6 +182,20 @@ let APIControllers = {
     }
   },
 
+
+  getAlreadyCheckedBatchEmailFinderFiles:async(req,res)=>{
+    try {
+      let user = await db.query(
+        `SELECT * from registration WHERE emailid='${req.user[0][0].emailid}'`
+      );
+      let files=await db.query(`SELECT * FROM useractivity_batch_finder_link where userid='${user[0][0].rowid}'`)
+      res.status(200).json(files[0])
+    } catch (error) {
+      console.log(error);
+      // ErrorHandler("getAlreadyCheckedBatchEmailFinderFiles Controller", error, req);
+      res.status(400).json(error);
+    }
+  },
   batchEmailFinder:async(req,res)=>{
     try {
       console.log(req.body.data,'req body')
@@ -189,16 +203,68 @@ let APIControllers = {
         `SELECT * from registration WHERE emailid='${req.user[0][0].emailid}'`
       );
       let apiKey = user[0][0].api_key;
-      let data=req.body.data
+      const data = {
+        gamalogic_emailid_finder: req.body.data,
+      };
       let response = await axios.post(
-        `https://gamalogic.com/fileuploader-finder?apikey=${process.env.API_KEY}&speed_rank=0`,
+        `https://gamalogic.com/batch-email-discovery/?apikey=${process.env.API_KEY}`,
         data
       ); 
       console.log(response,'response is here')
+      
+      let currenttime = new Date();
+      const formattedDate = currenttime
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ");
+      const userAgent = req.headers["user-agent"];
+      const ip = req.ip;
+      let fileAdded = await db.query(
+        `INSERT INTO useractivity_batch_finder_link(id,userid,apikey,date_time,speed_rank,count,ip_address,user_agent,file,file_upload,is_api,is_api_file,is_dashboard)VALUES('${response.data["batch id"]}','${user[0][0].rowid}','${apiKey}','${formattedDate}',0,'${response.data["total count"]}','${ip}','${userAgent}','${req.body.fileName}','${req.body.fileName}',1,0,0)`
+      );
+      let files=await db.query(`SELECT * FROM useractivity_batch_finder_link where id='${response.data["batch id"]}'`)
+        console.log(files[0],'fiels')
+      res.status(200).json({message:response.data.message,files:files[0][0]});
     } catch (error) {
       console.log(error)
       res.status(400).json(error)
     }
-  }
+  },
+  batchEmailFinderStatus: async (req, res) => {
+    try {
+      console.log('hiiiiii')
+      let user = await db.query(
+        `SELECT api_key from registration WHERE emailid='${req.user[0][0].emailid}'`
+      );
+      let apiKey = user[0][0].api_key;
+      let emailStatus = await axios.get(
+        `https://gamalogic.com/batch-email-discovery-status/?apikey=${process.env.API_KEY}&batchid=${req.query.id}`
+      );
+      console.log(emailStatus.data, "status");
+      res.status(200).json({ emailStatus: emailStatus.data });
+    } catch (error) {
+      console.log(error);
+      // ErrorHandler("batchEmailStatus Controller", error, req);
+      res.status(400).json(error);
+    }
+  },
+  downloadEmailFinderResultFile: async (req, res) => {
+    try {
+      console.log(req.query.batchId, "query");
+      let user = await db.query(
+        `SELECT api_key from registration WHERE emailid='${req.user[0][0].emailid}'`
+      );
+      let apiKey = user[0][0].api_key;
+      let download = await axios.get(
+        `https://gamalogic.com/batch-email-discovery-result/?apikey=${process.env.API_KEY}&batchid=${req.query.batchId}`
+      );
+      console.log(download,'download file')
+      res.status(200).json(download.data);
+    } catch (error) {
+      console.log(error);
+      ErrorHandler("downloadEmailVerificationFile Controller", error, req);
+      res.status(400).json(error);
+    }
+  },
 };
 export default APIControllers;
