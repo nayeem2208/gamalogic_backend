@@ -24,8 +24,10 @@ router.get('/getBatchStatus',authcheck,APIControllers.batchEmailStatus)
 router.get('/downloadEmailVerificationFile',authcheck,APIControllers.downloadEmailVerificationFile)
 
 //file based email finder 
+router.get('/getAllUploadedEmailFinderFiles',authcheck,APIControllers.getAlreadyCheckedBatchEmailFinderFiles)
 router.post('/batchEmailFinder',authcheck,APIControllers.batchEmailFinder)
-
+router.get('/getBatchFinderStatus',authcheck,APIControllers.batchEmailFinderStatus)
+router.get('/downloadEmailFinderFile',authcheck,APIControllers.downloadEmailFinderResultFile)
 
 router.get('/getApiKey',authcheck,APIControllers.getApi)
 router.get('/resetApiKey',authcheck,APIControllers.resetApiKey)
