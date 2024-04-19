@@ -5,6 +5,17 @@ import ErrorHandler from "../utils/errorHandler.js";
 import { passwordHash, verifyPassword } from "../utils/passwordHash.js";
 
 let APIControllers = {
+  getCreditBalance:async(req,res)=>{
+    try {
+      let credit=await db.query( `SELECT credits from registration WHERE emailid='${req.user[0][0].emailid}'`)
+      let creditBal=credit[0][0].credits
+      res.status(200).json(creditBal)
+    } catch (error) {
+      console.log(error);
+      // ErrorHandler("getApi Controller", error, req);
+      res.status(400).json(error);
+    }
+  },
   getApi: async (req, res) => {
     try {
       let apiKey = await db.query(
@@ -266,5 +277,19 @@ let APIControllers = {
       res.status(400).json(error);
     }
   },
+
+  updateCredit:async(req,res)=>{
+    try {
+      console.log(req.body ,'body of credit change is here')
+      let credit=await db.query( `SELECT credits from registration WHERE emailid='${req.user[0][0].emailid}'`)
+      let newBalance=credit[0][0].credits+req.body.credits
+      await db.query(`UPDATE registration SET credits='${newBalance}' WHERE emailid='${req.user[0][0].emailid}'`)
+      res.status(200).json('successfull')
+    } catch (error) {
+      console.log(error);
+      ErrorHandler("updateCredit Controller", error, req);
+      res.status(400).json(error);
+    }
+  }
 };
 export default APIControllers;
